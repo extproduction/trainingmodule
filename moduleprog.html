@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExtProduction Video Editing Program</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(180deg, #1a1a1a 0%, #333333 100%);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .window-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .window-controls div {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: opacity 0.3s ease;
+            display: inline-block;
+        }
+
+        .window-controls div:hover {
+            opacity: 0.8;
+        }
+
+        .close { background: #FF3B30; }
+        .minimize { background: #FF9500; }
+        .maximize { background: #00D084; }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.2em;
+            font-weight: 600;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        header p {
+            font-size: 1em;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .schedule {
+            display: grid;
+            gap: 20px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            opacity: 0;
+            animation: fadeIn 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .row:nth-child(1) { animation-delay: 0.2s; }
+        .row:nth-child(2) { animation-delay: 0.3s; }
+        .row:nth-child(3) { animation-delay: 0.4s; }
+        .row:nth-child(4) { animation-delay: 0.5s; }
+        .row:nth-child(5) { animation-delay: 0.6s; }
+        .row:nth-child(6) { animation-delay: 0.7s; }
+
+        .day {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            will-change: transform, background;
+        }
+
+        .day:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 4px 6px rgba(0, 0, 0, 0.3), /* Primary shadow */
+                0 8px 12px rgba(0, 0, 0, 0.2), /* Mid-layer shadow */
+                0 12px 20px rgba(0, 0, 0, 0.15); /* Soft outer layer */
+        }
+
+        .day:focus {
+            outline: 2px solid #007AFF;
+            outline-offset: 2px;
+        }
+
+        .day h3 {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .day p {
+            font-size: 0.95em;
+            color: rgba(255, 255, 255, 0.85);
+            transition: color 0.3s ease;
+        }
+
+        .day:hover p::after {
+            content: ' (Click for Details)';
+            font-size: 0.8em;
+            color: #007AFF;
+            margin-left: 5px;
+        }
+
+        .details {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, opacity 0.5s ease;
+            opacity: 0;
+        }
+
+        .details.show {
+            max-height: 300px;
+            opacity: 1;
+            padding-bottom: 10px;
+        }
+
+        .details ul {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+
+        .details li {
+            margin-bottom: 5px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .row {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .day {
+                width: 100%;
+            }
+
+            .details.show {
+                max-height: 400px;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="window-controls">
+            <div class="close" onclick="alert('Close window (demo)')"></div>
+            <div class="minimize" onclick="alert('Minimize window (demo)')"></div>
+            <div class="maximize" onclick="alert('Maximize window (demo)')"></div>
+        </div>
+        <header>
+            <h1>ExtProduction Video Editing Program</h1>
+            <p>Classes held every Monday and Wednesday, 11:00 AM – 12:30 PM</p>
+        </header>
+        <div class="schedule">
+            <div class="row">
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 1</h3>
+                    <p>Timeline & I/O Essentials</p>
+                    <div class="details">
+                        <ul>
+                            <li>Overview of AE Workflow</li>
+                            <li>Navigating the Timeline Panel</li>
+                            <li>Importing Assets Efficiently</li>
+                            <li>Exporting with Render Queue</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 2</h3>
+                    <p>AE Workspace & Tools</p>
+                    <div class="details">
+                        <ul>
+                            <li>Exploring the AE Interface: File, Edit, Save As and others</li>
+                            <li>Intro to Essential Tools: Pen Tool, Masking Basics</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 3</h3>
+                    <p>Core Editing Techniques</p>
+                    <div class="details">
+                        <ul>
+                            <li>Precision Cutting Techniques</li>
+                            <li>Trimming Clips with Shortcuts</li>
+                            <li>Understanding Layer Stacking</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 4</h3>
+                    <p>Shapes, Masks & Effects</p>
+                    <div class="details">
+                        <ul>
+                            <li>Layer Management Best Practices</li>
+                            <li>Creating Shapes with Shape Layers</li>
+                            <li>Masking for Compositing</li>
+                            <li>Pre-Composing for Organization</li>
+                            <li>Applying Basic Effects</li>
+                            <li>Using FX Console for Efficiency</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 5</h3>
+                    <p>Color Grading & Transitions</p>
+                    <div class="details">
+                        <ul>
+                            <li>Using Adjustment Layers for Grading</li>
+                            <li>Fundamentals of Color Grading in AE</li>
+                            <li>Applying LUTs for Cinematic Looks</li>
+                            <li>Crafting Smooth Transitions</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 6</h3>
+                    <p>Transform Animations</p>
+                    <div class="details">
+                        <ul>
+                            <li>Animating Scale Transformations</li>
+                            <li>Position Animation Techniques</li>
+                            <li>Rotation for Dynamic Motion</li>
+                            <li>Adjusting Anchor Points</li>
+                            <li>Opacity Fades and Blends</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 7</h3>
+                    <p>Text Design & Blending</p>
+                    <div class="details">
+                        <ul>
+                            <li>Creating Basic Text Layers</li>
+                            <li>Customizing Colors and Fonts</li>
+                            <li>Designing Gradient Text Effects</li>
+                            <li>Using Blend Modes for Text</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 8</h3>
+                    <p>Keyframes & Motion Dynamics</p>
+                    <div class="details">
+                        <ul>
+                            <li>Mastering Keyframe Animation</li>
+                            <li>Using the Graph Editor for Precision</li>
+                            <li>Applying Motion Blur for Realism</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 9</h3>
+                    <p>Advanced Expressions</p>
+                    <div class="details">
+                        <ul>
+                            <li>Building on Keyframe Techniques</li>
+                            <li>Intro to Expressions: Wiggle</li>
+                            <li>Looping with Ping Pong</li>
+                            <li>Cycling Animations Seamlessly</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 10</h3>
+                    <p>Pro Text Animation</p>
+                    <div class="details">
+                        <ul>
+                            <li>Advanced AE Text Animators</li>
+                            <li>Mastering Text Animation Presets</li>
+                            <li>Text Blend Modes for Depth</li>
+                            <li>Deep Glow for Stunning Text Effects</li>
+                            <li>Using Text Exploder Script</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 11</h3>
+                    <p>Shapes & Path Animation</p>
+                    <div class="details">
+                        <ul>
+                            <li>Advanced Shape Layer Techniques</li>
+                            <li>Creating Graphs with Pen Tool</li>
+                            <li>Handwriting Animation Effects</li>
+                            <li>Animating with Trim Paths</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="day" onclick="toggleDetails(this)" onkeydown="handleKeyPress(event, this)" tabindex="0">
+                    <h3>Day 12</h3>
+                    <p>Advanced Effects & Lighting</p>
+                    <div class="details">
+                        <ul>
+                            <li>CC Light Sweep for Dynamic Lighting</li>
+                            <li>CC Drop Shadow for Depth</li>
+                            <li>CC Deep Glow for Vibrant Effects</li>
+                            <li>CC Tritone for Color Styling</li>
+                            <li>Tint for Final Touches</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Toggle details visibility with better handling
+        function toggleDetails(element) {
+            const details = element.querySelector('.details');
+            const isOpen = details.classList.contains('show');
+            
+            // Close all other open details
+            document.querySelectorAll('.details.show').forEach(openDetail => {
+                if (openDetail !== details) {
+                    openDetail.classList.remove('show');
+                }
+            });
+
+            // Toggle the clicked details
+            details.classList.toggle('show');
+        }
+
+        // Keyboard navigation
+        function handleKeyPress(event, element) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleDetails(element);
+            }
+        }
+
+        // Hover feedback with delay to prevent rapid toggling
+        document.querySelectorAll('.day').forEach(day => {
+            let hoverTimeout;
+            day.addEventListener('mouseenter', () => {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = setTimeout(() => {
+                    day.style.background = 'rgba(255, 255, 255, 0.2)';
+                }, 100);
+            });
+            day.addEventListener('mouseleave', () => {
+                clearTimeout(hoverTimeout);
+                day.style.background = 'rgba(255, 255, 255, 0.12)';
+            });
+        });
+    </script>
+</body>
+</html>
